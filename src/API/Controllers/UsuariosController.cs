@@ -1,8 +1,12 @@
 using Autenticador.API.Application.CasosUso;
 using Autenticador.API.Application.DTOs;
+using Autenticador.API.Domain.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
 
 namespace Autenticador.API.API.Controllers
 {
@@ -12,13 +16,15 @@ namespace Autenticador.API.API.Controllers
     {
         private readonly CasoDeUsoCadastrarUsuario _casoCadastrar;
         private readonly CasoDeUsoAutenticarUsuario _casoAutenticar;
-        private readonly Autenticador.API.Domain.Interfaces.IUsuarioRepositorio _repositorio;
+        private readonly IUsuarioRepositorio _repositorio;
+        private readonly IConfiguration _config;
 
-        public UsuariosController(CasoDeUsoCadastrarUsuario casoCadastrar, CasoDeUsoAutenticarUsuario casoAutenticar, Autenticador.API.Domain.Interfaces.IUsuarioRepositorio repositorio)
+        public UsuariosController(CasoDeUsoCadastrarUsuario casoCadastrar, CasoDeUsoAutenticarUsuario casoAutenticar, IUsuarioRepositorio repositorio, IConfiguration config)
         {
             _casoCadastrar = casoCadastrar;
             _casoAutenticar = casoAutenticar;
             _repositorio = repositorio;
+            _config = config;
         }
 
         [HttpPost("cadastrar")]
@@ -72,6 +78,54 @@ namespace Autenticador.API.API.Controllers
             if (usuario == null) return NotFound(new { mensagem = "Usuário não encontrado" });
 
             return Ok(new { id = usuario.Id, email = usuario.Email, criadoEm = usuario.CriadoEm });
+        }
+
+        [HttpPost("validar-token")]
+        public IActionResult ValidarToken([FromBody] TokenValidacaoDto dto)
+        {
+            // Aceita token por body ou header Authorization: Bearer <token>
+            var token = dto?.Token;
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                var authHeader = Request.Headers["Authorization"].FirstOrDefault();
+                if (!string.IsNullOrWhiteSpace(authHeader) && authHeader.StartsWith("Bearer "))
+                    token = authHeader.Substring("Bearer ".Length).Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(token))
+                return BadRequest(new { valido = false, mensagem = "Token não informado" });
+
+            var chave = _config["Jwt:ChaveSecreta"] ?? string.Empty;
+            var emissor = _config["Jwt:Emissor"] ?? string.Empty;
+            var publico = _config["Jwt:Publico"] ?? string.Empty;
+            var chaveBytes = Encoding.UTF8.GetBytes(chave);
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var parametros = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(chaveBytes),
+                ValidateIssuer = true,
+                ValidIssuer = emissor,
+                ValidateAudience = true,
+                ValidAudience = publico,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
+
+            try
+            {
+                var principal = tokenHandler.ValidateToken(token, parametros, out var validatedToken);
+                return Ok(new { valido = true });
+            }
+            catch (Microsoft.IdentityModel.Tokens.SecurityTokenExpiredException)
+            {
+                return Ok(new { valido = false, mensagem = "Token expirado" });
+            }
+            catch (Exception)
+            {
+                return Ok(new { valido = false, mensagem = "Token inválido" });
+            }
         }
     }
 }

@@ -1,19 +1,15 @@
-using System;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
 using Autenticador.API.Domain.Entidades;
 using Autenticador.API.Domain.Interfaces;
-using Dapper;
+using System.Data;
 
 namespace Autenticador.API.Infrastructure.Persistencia
 {
-    // Implementação do repositório usando Dapper sobre um IDbConnection fake que lê do DataSet
-    public class UsuarioRepositorioDapperFake : IUsuarioRepositorio
+    // Implementação do repositório usando Dapper sobre um IDbConnection que lê do DataSet
+    public class UsuarioRepositorioDapper : IUsuarioRepositorio
     {
         private readonly BancoMemoria _banco;
 
-        public UsuarioRepositorioDapperFake(BancoMemoria banco)
+        public UsuarioRepositorioDapper(BancoMemoria banco)
         {
             _banco = banco;
         }
@@ -40,8 +36,10 @@ namespace Autenticador.API.Infrastructure.Persistencia
             row["SenhaHash"] = usuario.SenhaHash;
             row["CriadoEm"] = usuario.CriadoEm;
             tabela.Rows.Add(row);
+
             // forçar aceitação para gerar o Id autoincremento
             tabela.AcceptChanges();
+
             // O DataColumn AutoIncrement gera o valor somente após AcceptChanges quando se usa NewRow+Add
             // Recuperar o último Id
             var id = (int)row["Id"];

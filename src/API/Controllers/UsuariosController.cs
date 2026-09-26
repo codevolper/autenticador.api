@@ -1,11 +1,8 @@
-using System;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
 using Autenticador.API.Application.CasosUso;
 using Autenticador.API.Application.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Autenticador.API.API.Controllers
 {
@@ -15,11 +12,13 @@ namespace Autenticador.API.API.Controllers
     {
         private readonly CasoDeUsoCadastrarUsuario _casoCadastrar;
         private readonly CasoDeUsoAutenticarUsuario _casoAutenticar;
+        private readonly Autenticador.API.Domain.Interfaces.IUsuarioRepositorio _repositorio;
 
-        public UsuariosController(CasoDeUsoCadastrarUsuario casoCadastrar, CasoDeUsoAutenticarUsuario casoAutenticar)
+        public UsuariosController(CasoDeUsoCadastrarUsuario casoCadastrar, CasoDeUsoAutenticarUsuario casoAutenticar, Autenticador.API.Domain.Interfaces.IUsuarioRepositorio repositorio)
         {
             _casoCadastrar = casoCadastrar;
             _casoAutenticar = casoAutenticar;
+            _repositorio = repositorio;
         }
 
         [HttpPost("cadastrar")]
@@ -60,11 +59,19 @@ namespace Autenticador.API.API.Controllers
 
         [Authorize]
         [HttpGet("perfil")]
-        public IActionResult ObterPerfil()
+        public async Task<IActionResult> ObterPerfil()
         {
-            var sub = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier || c.Type == ClaimTypes.Name || c.Type == ClaimTypes.Email || c.Type == "sub");
-            if (sub == null) return Unauthorized();
-            return Ok(new { usuario = sub.Value });
+            // Extrair o claim 'sub' (subject) que contém o id do usuário
+            var claimSub = User.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type == ClaimTypes.NameIdentifier);
+            if (claimSub == null) return Unauthorized(new { mensagem = "Token inválido ou ausência de claim 'sub'" });
+
+            if (!int.TryParse(claimSub.Value, out var usuarioId))
+                return Unauthorized(new { mensagem = "Claim 'sub' inválido" });
+
+            var usuario = await _repositorio.ObterPorIdAsync(usuarioId);
+            if (usuario == null) return NotFound(new { mensagem = "Usuário não encontrado" });
+
+            return Ok(new { id = usuario.Id, email = usuario.Email, criadoEm = usuario.CriadoEm });
         }
     }
 }

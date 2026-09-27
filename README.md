@@ -52,6 +52,4 @@ Dependências e versão do .NET
 Suporte e próximos passos
 ------------------------
 Posso:
-- Separar a solução em múltiplos projetos por camada (Domain/Application/Infrastructure/API).
-- Implementar um IDbConnection fake para usar Dapper diretamente nas consultas.
 - Adicionar validações adicionais e testes automatizados.

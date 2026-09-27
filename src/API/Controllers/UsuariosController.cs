@@ -1,11 +1,12 @@
-using System;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
 using Autenticador.API.Application.CasosUso;
 using Autenticador.API.Application.DTOs;
+using Autenticador.API.Domain.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace Autenticador.API.API.Controllers
 {
@@ -15,15 +16,19 @@ namespace Autenticador.API.API.Controllers
     {
         private readonly CasoDeUsoCadastrarUsuario _casoCadastrar;
         private readonly CasoDeUsoAutenticarUsuario _casoAutenticar;
+        private readonly IUsuarioRepositorio _repositorio;
+        private readonly IConfiguration _config;
 
-        public UsuariosController(CasoDeUsoCadastrarUsuario casoCadastrar, CasoDeUsoAutenticarUsuario casoAutenticar)
+        public UsuariosController(CasoDeUsoCadastrarUsuario casoCadastrar, CasoDeUsoAutenticarUsuario casoAutenticar, IUsuarioRepositorio repositorio, IConfiguration config)
         {
             _casoCadastrar = casoCadastrar;
             _casoAutenticar = casoAutenticar;
+            _repositorio = repositorio;
+            _config = config;
         }
 
         [HttpPost("cadastrar")]
-        public async Task<IActionResult> Cadastrar([FromBody] UsuarioCadastroDto dto)
+        public async Task<IActionResult> Cadastrar([FromBody] UsuarioDto dto)
         {
             try
             {
@@ -41,7 +46,7 @@ namespace Autenticador.API.API.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] UsuarioLoginDto dto)
+        public async Task<IActionResult> Login([FromBody] UsuarioDto dto)
         {
             try
             {
@@ -60,11 +65,67 @@ namespace Autenticador.API.API.Controllers
 
         [Authorize]
         [HttpGet("perfil")]
-        public IActionResult ObterPerfil()
+        public async Task<IActionResult> ObterPerfil()
         {
-            var sub = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier || c.Type == ClaimTypes.Name || c.Type == ClaimTypes.Email || c.Type == "sub");
-            if (sub == null) return Unauthorized();
-            return Ok(new { usuario = sub.Value });
+            // Extrair o claim 'sub' (subject) que contém o id do usuário
+            var claimSub = User.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type == ClaimTypes.NameIdentifier);
+            if (claimSub == null) return Unauthorized(new { mensagem = "Token inválido ou ausência de claim 'sub'" });
+
+            if (!int.TryParse(claimSub.Value, out var usuarioId))
+                return Unauthorized(new { mensagem = "Claim 'sub' inválido" });
+
+            var usuario = await _repositorio.ObterPorIdAsync(usuarioId);
+            if (usuario == null) return NotFound(new { mensagem = "Usuário não encontrado" });
+
+            return Ok(new { id = usuario.Id, email = usuario.Email, criadoEm = usuario.CriadoEm });
+        }
+
+        [HttpPost("validar-token")]
+        public IActionResult ValidarToken([FromBody] TokenValidacaoDto dto)
+        {
+            // Aceita token por body ou header Authorization: Bearer <token>
+            var token = dto?.Token;
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                var authHeader = Request.Headers["Authorization"].FirstOrDefault();
+                if (!string.IsNullOrWhiteSpace(authHeader) && authHeader.StartsWith("Bearer "))
+                    token = authHeader.Substring("Bearer ".Length).Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(token))
+                return BadRequest(new { valido = false, mensagem = "Token não informado" });
+
+            var chave = _config["Jwt:ChaveSecreta"] ?? string.Empty;
+            var emissor = _config["Jwt:Emissor"] ?? string.Empty;
+            var publico = _config["Jwt:Publico"] ?? string.Empty;
+            var chaveBytes = Encoding.UTF8.GetBytes(chave);
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var parametros = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(chaveBytes),
+                ValidateIssuer = true,
+                ValidIssuer = emissor,
+                ValidateAudience = true,
+                ValidAudience = publico,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
+
+            try
+            {
+                var principal = tokenHandler.ValidateToken(token, parametros, out var validatedToken);
+                return Ok(new { valido = true });
+            }
+            catch (Microsoft.IdentityModel.Tokens.SecurityTokenExpiredException)
+            {
+                return Ok(new { valido = false, mensagem = "Token expirado" });
+            }
+            catch (Exception)
+            {
+                return Ok(new { valido = false, mensagem = "Token inválido" });
+            }
         }
     }
 }

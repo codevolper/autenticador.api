@@ -1,4 +1,3 @@
-using System;
 using System.Security.Cryptography;
 
 namespace Autenticador.API.Infrastructure.Seguranca
@@ -27,7 +26,10 @@ namespace Autenticador.API.Infrastructure.Seguranca
             try
             {
                 var partes = hashArmazenado.Split('.');
-                if (partes.Length != 3) return false;
+
+                if (partes.Length != 3) 
+                    return false;
+
                 var iter = int.Parse(partes[0]);
                 var salt = Convert.FromBase64String(partes[1]);
                 var hash = Convert.FromBase64String(partes[2]);

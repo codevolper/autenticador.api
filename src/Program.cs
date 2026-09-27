@@ -5,6 +5,7 @@ using Autenticador.API.Infrastructure.Persistencia;
 using Autenticador.API.Infrastructure.Seguranca;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,15 +13,16 @@ builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnC
 
 // Serviços de aplicação e infraestrutura
 builder.Services.AddSingleton<BancoMemoria>();
-builder.Services.AddScoped<IUsuarioRepositorio, UsuarioRepositorioDapperFake>();
+builder.Services.AddScoped<IUsuarioRepositorio, UsuarioRepositorioDapper>();
 builder.Services.AddScoped<ServicoHashDeSenha>();
 builder.Services.AddScoped<GeradorJwt>();
 builder.Services.AddScoped<CasoDeUsoCadastrarUsuario>();
 builder.Services.AddScoped<CasoDeUsoAutenticarUsuario>();
 
 // Autenticação JWT
-var chave = builder.Configuration["Jwt:ChaveSecreta"] ?? "troque-esta-chave-por-uma-muito-segura";
+var chave = builder.Configuration["Jwt:ChaveSecreta"] ?? "hash-chave-segura-criptografada-autenticacao";
 var chaveBytes = Encoding.UTF8.GetBytes(chave);
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -43,12 +45,40 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(s =>
+{
+
+    s.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    s.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
 
 var app = builder.Build();
 
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(s => { 
+    s.SwaggerEndpoint("/swagger/v1/swagger.json", "Autenticador API V1");
+    s.RoutePrefix = string.Empty;  
+});
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -1,4 +1,3 @@
-using System;
 using System.Data;
 
 namespace Autenticador.API.Infrastructure.Persistencia
@@ -17,6 +16,7 @@ namespace Autenticador.API.Infrastructure.Persistencia
         private void CriarTabelaUsuarios()
         {
             var tabela = new DataTable("Usuarios");
+
             var colId = new DataColumn("Id", typeof(int)) { AutoIncrement = true, AutoIncrementSeed = 1, AutoIncrementStep = 1 };
             var colEmail = new DataColumn("Email", typeof(string));
             var colSenha = new DataColumn("SenhaHash", typeof(string));

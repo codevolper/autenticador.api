@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using Autenticador.API.Application.DTOs;
 using Autenticador.API.Domain.Entidades;
 using Autenticador.API.Domain.Interfaces;
@@ -18,10 +16,11 @@ namespace Autenticador.API.Application.CasosUso
             _hasher = hasher;
         }
 
-        public async Task<UsuarioRespostaDto> ExecutarAsync(UsuarioCadastroDto dto)
+        public async Task<UsuarioRespostaDto> ExecutarAsync(UsuarioDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Email))
                 throw new ArgumentException("E-mail é obrigatório");
+
             if (string.IsNullOrWhiteSpace(dto.Senha))
                 throw new ArgumentException("Senha é obrigatória");
 

@@ -20,7 +20,7 @@ builder.Services.AddScoped<CasoDeUsoCadastrarUsuario>();
 builder.Services.AddScoped<CasoDeUsoAutenticarUsuario>();
 
 // Autenticação JWT
-var chave = builder.Configuration["Jwt:ChaveSecreta"] ?? "troque-esta-chave-por-uma-muito-segura";
+var chave = builder.Configuration["Jwt:ChaveSecreta"] ?? "hash-chave-segura-criptografada-autenticacao";
 var chaveBytes = Encoding.UTF8.GetBytes(chave);
 
 builder.Services.AddAuthentication(options =>

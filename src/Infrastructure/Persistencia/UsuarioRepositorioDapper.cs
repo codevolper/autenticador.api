@@ -17,9 +17,13 @@ namespace Autenticador.API.Infrastructure.Persistencia
         public Task<Usuario?> ObterPorEmailAsync(string email)
         {
             var tabela = _banco.DataSet.Tables["Usuarios"];
+
             var rows = tabela.Select($"Email = '{Escape(email)}'");
             var row = rows.FirstOrDefault();
-            if (row == null) return Task.FromResult<Usuario?>(null);
+
+            if (row == null) 
+                return Task.FromResult<Usuario?>(null);
+
             var usuario = Mapear(row);
             return Task.FromResult<Usuario?>(usuario);
         }
@@ -27,9 +31,12 @@ namespace Autenticador.API.Infrastructure.Persistencia
         public Task<int> InserirAsync(Usuario usuario)
         {
             var tabela = _banco.DataSet.Tables["Usuarios"];
+
             // valida unicidade
             var existente = tabela.Select($"Email = '{Escape(usuario.Email)}'");
-            if (existente.Any()) throw new InvalidOperationException("Já existe um usuário com este e-mail");
+
+            if (existente.Any()) 
+                throw new InvalidOperationException("Já existe um usuário com este e-mail");
 
             var row = tabela.NewRow();
             row["Email"] = usuario.Email;
@@ -49,9 +56,13 @@ namespace Autenticador.API.Infrastructure.Persistencia
         public Task<Usuario?> ObterPorIdAsync(int id)
         {
             var tabela = _banco.DataSet.Tables["Usuarios"];
+
             var rows = tabela.Select($"Id = {id}");
             var row = rows.FirstOrDefault();
-            if (row == null) return Task.FromResult<Usuario?>(null);
+
+            if (row == null) 
+                return Task.FromResult<Usuario?>(null);
+
             var usuario = Mapear(row);
             return Task.FromResult<Usuario?>(usuario);
         }

@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using Autenticador.API.Application.DTOs;
 using Autenticador.API.Domain.Interfaces;
 using Autenticador.API.Infrastructure.Seguranca;
@@ -19,7 +17,7 @@ namespace Autenticador.API.Application.CasosUso
             _geradorJwt = geradorJwt;
         }
 
-        public async Task<string> ExecutarAsync(UsuarioLoginDto dto)
+        public async Task<string> ExecutarAsync(UsuarioDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Senha))
                 throw new ArgumentException("E-mail e Senha são obrigatórios");

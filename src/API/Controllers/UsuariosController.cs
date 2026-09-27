@@ -28,7 +28,7 @@ namespace Autenticador.API.API.Controllers
         }
 
         [HttpPost("cadastrar")]
-        public async Task<IActionResult> Cadastrar([FromBody] UsuarioCadastroDto dto)
+        public async Task<IActionResult> Cadastrar([FromBody] UsuarioDto dto)
         {
             try
             {
@@ -46,7 +46,7 @@ namespace Autenticador.API.API.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] UsuarioLoginDto dto)
+        public async Task<IActionResult> Login([FromBody] UsuarioDto dto)
         {
             try
             {

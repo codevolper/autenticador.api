@@ -1,10 +1,8 @@
-using System;
+using Autenticador.API.Domain.Entidades;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Autenticador.API.Domain.Entidades;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
 
 namespace Autenticador.API.Infrastructure.Seguranca
 {

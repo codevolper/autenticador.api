@@ -69,13 +69,15 @@ namespace Autenticador.API.API.Controllers
         {
             // Extrair o claim 'sub' (subject) que contém o id do usuário
             var claimSub = User.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type == ClaimTypes.NameIdentifier);
-            if (claimSub == null) return Unauthorized(new { mensagem = "Token inválido ou ausência de claim 'sub'" });
+            if (claimSub == null) 
+                return Unauthorized(new { mensagem = "Token inválido ou ausência de claim 'sub'" });
 
             if (!int.TryParse(claimSub.Value, out var usuarioId))
                 return Unauthorized(new { mensagem = "Claim 'sub' inválido" });
 
             var usuario = await _repositorio.ObterPorIdAsync(usuarioId);
-            if (usuario == null) return NotFound(new { mensagem = "Usuário não encontrado" });
+            if (usuario == null) 
+                return NotFound(new { mensagem = "Usuário não encontrado" });
 
             return Ok(new { id = usuario.Id, email = usuario.Email, criadoEm = usuario.CriadoEm });
         }
